@@ -14,6 +14,7 @@ export interface DeviceRealtimeState {
   id: string;
   name: string;
   telemetry: TelemetryPayload | null;
+  history: TelemetryPayload[]; // Last 60 telemetry readings for live trend
   relays: number[]; // 8 binary channels
   pendingRelays: Record<number, boolean>; // Pending confirmation per channel
   leds: LedStripState[];
@@ -50,6 +51,7 @@ const createDefaultDeviceState = (
   id,
   name,
   telemetry: null,
+  history: [],
   relays: [0, 0, 0, 0, 0, 0, 0, 0],
   pendingRelays: {},
   leds: [
@@ -99,9 +101,11 @@ export const useDeviceStore = create<DeviceStoreState>((set, get) => ({
   updateTelemetry: (deviceId, telemetry) => {
     set((state) => {
       const current = state.devices[deviceId] || createDefaultDeviceState(deviceId);
+      const nextHistory = [...(current.history || []).slice(-59), telemetry];
       const updated: DeviceRealtimeState = {
         ...current,
         telemetry,
+        history: nextHistory,
         lastUpdated: Date.now(),
       };
       const nextDevices = { ...state.devices, [deviceId]: updated };
@@ -255,9 +259,26 @@ export const selectActiveDeviceStatus = (state: DeviceStoreState): StatusPayload
 
 export const selectActiveStatus = selectActiveDeviceStatus;
 
+const EMPTY_HISTORY: TelemetryPayload[] = [];
+
 export const selectActiveTelemetry = (state: DeviceStoreState): TelemetryPayload | null => {
   const dev = state.devices[state.activeDeviceId];
   return dev ? dev.telemetry : null;
+};
+
+export const selectActiveTemperature = (state: DeviceStoreState): number | null => {
+  const dev = state.devices[state.activeDeviceId];
+  return dev?.telemetry ? dev.telemetry.t : null;
+};
+
+export const selectActiveHumidity = (state: DeviceStoreState): number | null => {
+  const dev = state.devices[state.activeDeviceId];
+  return dev?.telemetry ? dev.telemetry.h : null;
+};
+
+export const selectActiveTelemetryHistory = (state: DeviceStoreState): TelemetryPayload[] => {
+  const dev = state.devices[state.activeDeviceId];
+  return dev?.history ?? EMPTY_HISTORY;
 };
 
 export const selectActiveRelays = (state: DeviceStoreState): number[] => {
