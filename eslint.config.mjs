@@ -14,6 +14,8 @@ export default [
       'android/**',
       'ios/**',
       '*.config.js',
+      'jest.setup.js',
+      'simulator/**',
     ],
   },
 ];
